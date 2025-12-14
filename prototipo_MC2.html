@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTM Fleet Manager - App Corporativa</title>
+    
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Configuración de Colores Corporativos en Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        corp: {
+                            blue: '#02ADEE',
+                            green: '#ADC137',
+                            dark: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        * { box-sizing: border-box; }
+        body { background-color: #f8fafc; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+        .sidebar-link { cursor: pointer; transition: all 0.2s; border-left: 3px solid transparent; }
+        .sidebar-link:hover { background-color: #f1f5f9; color: #02ADEE; }
+        .sidebar-link.active { background-color: #e0f7ff; color: #02ADEE; border-left-color: #02ADEE; }
+        
+        .hamburger-btn { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #02ADEE; padding: 0.5rem; }
+        .hamburger-btn:hover { color: #029ec0; }
+        
+        @media (max-width: 768px) {
+            .hamburger-btn { display: block; }
+            .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transition: transform 0.3s ease; overflow-y: auto; }
+            .sidebar.closed { transform: translateX(-100%); }
+            .main-wrapper { margin-left: 0 !important; }
+        }
+        
+        @media (min-width: 769px) {
+            .sidebar { position: fixed; }
+            .main-wrapper { margin-left: 16rem; }
+        }
+        
+        /* Estilos específicos para botones corporativos */
+        .btn-blue { background-color: #02ADEE; color: white; }
+        .btn-blue:hover { background-color: #029ec0; } 
+        
+        .btn-green { background-color: #ADC137; color: white; }
+        .btn-green:hover { background-color: #9cb030; }
+
+        /* Estilo para tabla con scroll horizontal suave */
+        .table-responsive-wrapper {
+            overflow-x: auto;
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+        }
+        
+        /* Tabla de Tráileres */
+        .table-trailers {
+            min-width: 1000px; 
+        }
+
+        /* Tabla GTM - Necesita mucho más ancho por la cantidad de datos */
+        .table-gtm {
+            min-width: 2000px; 
+        }
+        
+        @media (max-width: 1024px) {
+            .table-trailers { min-width: 800px; }
+            .table-gtm { min-width: 1500px; }
+        }
+        
+        @media (max-width: 768px) {
+            .table-trailers { min-width: 600px; }
+            .table-gtm { min-width: 900px; }
+            th, td { padding: 0.75rem 0.5rem; font-size: 0.75rem; }
+        }
+        
+        @media (max-width: 480px) {
+            .table-trailers { min-width: 500px; }
+            .table-gtm { min-width: 700px; }
+            th, td { padding: 0.5rem 0.25rem; font-size: 0.65rem; }
+        }
+
+        th {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            color: #64748b;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            padding: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+            font-size: 0.875rem;
+            color: #334155;
+        }
+
+        tr:hover {
+            background-color: #f0f9ff;
+            transition: background-color 0.2s;
+        }
+        
+        /* Estilo para secciones del formulario */
+        .form-section-title {
+            color: #1e293b;
+            font-size: 0.875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Notificaciones Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border-left: 4px solid #02ADEE;
+            animation: slideInRight 0.3s ease-out;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 320px;
+        }
+
+        .toast.success {
+            border-left-color: #ADC137;
+            color: #15803d;
+        }
+
+        .toast.error {
+            border-left-color: #ef4444;
+            color: #991b1b;
+        }
+
+        .toast.info {
+            border-left-color: #02ADEE;
+            color: #0c4a6e;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(400px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Animación KPI Cards */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card-animated {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .stat-card-animated:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .stat-card-animated:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .stat-card-animated:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        /* Input de búsqueda elegante */
+        .search-input {
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s;
+            border-radius: 0.75rem;
+        }
+
+        .search-input:focus {
+            border-color: #02ADEE;
+            box-shadow: 0 0 0 3px rgba(2, 173, 238, 0.1);
+        }
+
+        /* Botones de acciones en tabla */
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        tr:hover .action-buttons {
+            opacity: 1;
+        }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .action-btn.view {
+            background-color: #e0f7ff;
+            color: #02ADEE;
+        }
+
+        .action-btn.view:hover {
+            background-color: #02ADEE;
+            color: white;
+        }
+
+        .action-btn.edit {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+
+        .action-btn.edit:hover {
+            background-color: #d97706;
+            color: white;
+        }
+
+        .action-btn.delete {
+            background-color: #fee2e2;
+            color: #ef4444;
+        }
+
+        .action-btn.delete:hover {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        /* Responsive Grid y componentes */
+        @media (max-width: 768px) {
+            .stat-card-animated {
+                animation-delay: 0s !important;
+                padding: 1rem !important;
+            }
+            
+            .stat-card-animated h2 {
+                font-size: 2.25rem !important;
+            }
+            
+            .card {
+                padding: 1rem !important;
+                margin-bottom: 1rem !important;
+            }
+            
+            .main-content {
+                padding: 1rem !important;
+            }
+            
+            header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 1rem;
+            }
+            
+            header h2 {
+                font-size: 1.5rem !important;
+            }
+            
+            .search-input {
+                font-size: 14px;
+            }
+            
+            .action-buttons {
+                opacity: 1;
+            }
+            
+            .action-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .sidebar {
+                width: 100%;
+            }
+            
+            .stat-card-animated {
+                padding: 0.75rem !important;
+            }
+            
+            .stat-card-animated h2 {
+                font-size: 1.75rem !important;
+            }
+            
+            .stat-card-animated p {
+                font-size: 0.7rem;
+            }
+            
+            th, td {
+                padding: 0.5rem 0.25rem !important;
+                font-size: 0.65rem !important;
+            }
+            
+            .form-section-title {
+                font-size: 0.7rem;
+            }
+            
+            button {
+                font-size: 0.875rem;
+                padding: 0.5rem 1rem !important;
+            }
+            
+            .toast {
+                min-width: 280px;
+                font-size: 12px;
+                padding: 12px 14px;
+            }
+            
+            input, select {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- COMPONENTES UI ---
+
+        // Sistema de Notificaciones
+        const Toast = ({ message, type = 'info', onClose }) => {
+            useEffect(() => {
+                const timer = setTimeout(onClose, 4000);
+                return () => clearTimeout(timer);
+            }, [onClose]);
+
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-xmark-circle',
+                info: 'fa-info-circle'
+            };
+
+            return (
+                <div className={`toast ${type}`}>
+                    <i className={`fa-solid ${icons[type]}`}></i>
+                    <span>{message}</span>
+                </div>
+            );
+        };
+
+        const ToastContainer = ({ toasts, removeToast }) => (
+            <div className="toast-container">
+                {toasts.map((toast) => (
+                    <Toast 
+                        key={toast.id} 
+                        message={toast.message} 
+                        type={toast.type}
+                        onClose={() => removeToast(toast.id)}
+                    />
+                ))}
+            </div>
+        );
+
+        const Card = ({ children, title, className = "" }) => (
+            <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 relative overflow-hidden ${className}`}>
+                <div className="absolute top-0 left-0 w-1 h-full bg-corp-blue opacity-50"></div>
+                {title && <h3 className="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100 flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-corp-blue mr-2"></span>
+                    {title}
+                </h3>}
+                {children}
+            </div>
+        );
+
+        const Badge = ({ status }) => {
+            if (status === 'Activo') {
+                return (
+                    <span className="px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm" style={{backgroundColor: '#ADC137'}}>
+                        {status}
+                    </span>
+                );
+            }
+            const colors = {
+                'Mantenimiento': 'bg-orange-100 text-orange-700',
+                'Inactivo': 'bg-red-100 text-red-700'
+            };
+            return (
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${colors[status] || 'bg-gray-100'}`}>
+                    {status}
+                </span>
+            );
+        };
+
+        const StatCard = ({ title, count, icon, colorClass, iconBgClass }) => (
+            <div className="stat-card-animated bg-white rounded-xl p-6 shadow-md border-b-4 border-corp-blue hover:shadow-lg transition-shadow">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <p className="text-slate-500 text-sm uppercase tracking-wider font-semibold">{title}</p>
+                        <h2 className="text-4xl font-bold mt-2 text-slate-800">{count}</h2>
+                    </div>
+                    <div className={`p-3 rounded-lg ${iconBgClass} text-white shadow-md`}>
+                        <i className={`${icon} text-xl`}></i>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // --- APLICACIÓN PRINCIPAL ---
+
+        const App = () => {
+            const [currentView, setCurrentView] = useState('dashboard');
+            const [toasts, setToasts] = useState([]);
+            const [searchTrailer, setSearchTrailer] = useState('');
+            const [searchGtm, setSearchGtm] = useState('');
+            const [sidebarOpen, setSidebarOpen] = useState(false);
+            
+            // Función para agregar notificaciones
+            const addToast = (message, type = 'info') => {
+                const id = Date.now();
+                setToasts([...toasts, { id, message, type }]);
+            };
+
+            const removeToast = (id) => {
+                setToasts(toasts.filter(toast => toast.id !== id));
+            };
+            
+            // DATOS PRECARGADOS
+            const [trailers, setTrailers] = useState([
+                { 
+                    id: 1, 
+                    placa: 'S-89454', 
+                    marca: 'Bomgas', 
+                    modelo: '2025', 
+                    linea: 'Tanque-H',
+                    clase: 'Semiremolque',
+                    tipoCarroceria: 'Cisterna', 
+                    llantas: 12, 
+                    carga: '35 Ton', 
+                    propietario: 'MC2', 
+                    identificacion: 'BG-99887766',
+                    estado: 'Activo' 
+                }
+            ]);
+
+            // GTM inicial con datos de ejemplo completos
+            const [gtms, setGtms] = useState([
+                { 
+                    id: 1, 
+                    serial: '9F9S3PRFAEC313006', 
+                    fechaFabricacion: '2025-07-15', 
+                    marca: 'BONGAS', 
+                    tipo: 'Horizontal', 
+                    modelo: 'H-2025', 
+                    contenido: 'Gas Natural',
+                    pesoCilindros: '12000', 
+                    capacidadGasKg: '4500', 
+                    pesoTotal: '16500', 
+                    capacidadGasM3: '6000',
+                    presionTrabajo: '250', 
+                    presionMaxLlenado: '250', 
+                    presionHidrostatica: '375', 
+                    tempTrabajo: '45',
+                    largo: '12.5', 
+                    alto: '2.4', 
+                    ancho: '2.6', 
+                    vidaUtil: '20', 
+                    material: 'Acero',
+                    cantCilindros: '272', 
+                    capCilindroM3: '22', 
+                    capCilindroLt: '100',
+                    canastilla1: '48', canastilla2: '64', canastilla3: '64', canastilla4: '48', canastilla5: '48',
+                    valvulasPaso: '5', 
+                    mangueraLlenado: 'Industrial 2"',
+                    valvulaSeguridad: 'RegO 3131', 
+                    indicadorTemp: 'WIKA', 
+                    manometro: 'WIKA 0-400',
+                    trailerAsignado: 'S-89454', 
+                    estado: 'Activo'
+                }
+            ]);
+
+            // ESTADOS DE FORMULARIO
+            const [newTrailer, setNewTrailer] = useState({ 
+                placa: '', marca: '', modelo: '', linea: '', clase: 'Semiremolque', 
+                tipoCarroceria: 'Plataforma', llantas: '', carga: '', propietario: '', 
+                identificacion: '', estado: 'Activo' 
+            });
+            
+            const [newGtm, setNewGtm] = useState({ 
+                serial: '', fechaFabricacion: '', marca: '', tipo: '', modelo: '', contenido: '',
+                pesoCilindros: '', capacidadGasKg: '', pesoTotal: '', capacidadGasM3: '',
+                presionTrabajo: '', presionMaxLlenado: '', presionHidrostatica: '', tempTrabajo: '',
+                largo: '', alto: '', ancho: '', vidaUtil: '', material: '',
+                cantCilindros: '', capCilindroM3: '', capCilindroLt: '',
+                canastilla1: '', canastilla2: '', canastilla3: '', canastilla4: '', canastilla5: '',
+                valvulasPaso: '', mangueraLlenado: '',
+                valvulaSeguridad: '', indicadorTemp: '', manometro: '',
+                trailerAsignado: '', estado: 'Activo'
+            });
+
+            // HANDLERS
+            const handleAddTrailer = (e) => {
+                e.preventDefault();
+                if (!newTrailer.placa || !newTrailer.identificacion) {
+                    addToast('Por favor completa los campos obligatorios', 'error');
+                    return;
+                }
+                setTrailers([...trailers, { ...newTrailer, id: Date.now() }]);
+                setNewTrailer({ 
+                    placa: '', marca: '', modelo: '', linea: '', clase: 'Semiremolque', 
+                    tipoCarroceria: 'Plataforma', llantas: '', carga: '', propietario: '', 
+                    identificacion: '', estado: 'Activo' 
+                });
+                addToast(`Tráiler ${newTrailer.placa} registrado exitosamente`, 'success');
+            };
+
+            const handleAddGtm = (e) => {
+                e.preventDefault();
+                if (!newGtm.serial || !newGtm.marca) {
+                    addToast('Por favor completa los campos obligatorios', 'error');
+                    return;
+                }
+                setGtms([...gtms, { ...newGtm, id: Date.now() }]);
+                setNewGtm({ 
+                    serial: '', fechaFabricacion: '', marca: '', tipo: '', modelo: '', contenido: '',
+                    pesoCilindros: '', capacidadGasKg: '', pesoTotal: '', capacidadGasM3: '',
+                    presionTrabajo: '', presionMaxLlenado: '', presionHidrostatica: '', tempTrabajo: '',
+                    largo: '', alto: '', ancho: '', vidaUtil: '', material: '',
+                    cantCilindros: '', capCilindroM3: '', capCilindroLt: '',
+                    canastilla1: '', canastilla2: '', canastilla3: '', canastilla4: '', canastilla5: '',
+                    valvulasPaso: '', mangueraLlenado: '',
+                    valvulaSeguridad: '', indicadorTemp: '', manometro: '',
+                    trailerAsignado: '', estado: 'Activo'
+                });
+                addToast(`Módulo GTM ${newGtm.serial} registrado con ficha técnica completa`, 'success');
+            };
+
+            const handleDeleteTrailer = (id, placa) => {
+                setTrailers(trailers.filter(t => t.id !== id));
+                addToast(`Tráiler ${placa} eliminado`, 'info');
+            };
+
+            const handleDeleteGtm = (id, serial) => {
+                setGtms(gtms.filter(g => g.id !== id));
+                addToast(`Módulo GTM ${serial} eliminado`, 'info');
+            };
+
+            // Filtrado de datos
+            const filteredTrailers = trailers.filter(t => 
+                t.placa.toLowerCase().includes(searchTrailer.toLowerCase()) ||
+                t.identificacion.toLowerCase().includes(searchTrailer.toLowerCase())
+            );
+
+            const filteredGtms = gtms.filter(g => 
+                g.serial.toLowerCase().includes(searchGtm.toLowerCase()) ||
+                g.marca.toLowerCase().includes(searchGtm.toLowerCase())
+            );
+
+            // VISTAS
+            const renderDashboard = () => (
+                <div className="space-y-6 md:space-y-8">
+                    {/* KPI CARDS */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                        <StatCard title="Total Tráileres" count={trailers.length} icon="fa-solid fa-truck" colorClass="text-corp-blue" iconBgClass="bg-corp-blue" />
+                        <StatCard title="Módulos GTM" count={gtms.length} icon="fa-solid fa-bottle-droplet" colorClass="text-corp-green" iconBgClass="bg-corp-green" />
+                        <StatCard title="Todos Operativos" count="100%" icon="fa-solid fa-check-circle" colorClass="text-green-500" iconBgClass="bg-green-500" />
+                    </div>
+
+                    {/* TABLA TRÁILERES CON BÚSQUEDA */}
+                    <Card title="Tráileres Registrados">
+                        <div className="mb-4">
+                            <div className="relative">
+                                <i className="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm md:text-base"></i>
+                                <input 
+                                    type="text" 
+                                    placeholder="Buscar por placa o identificación..." 
+                                    value={searchTrailer}
+                                    onChange={e => setSearchTrailer(e.target.value)}
+                                    className="search-input w-full pl-10 p-2 md:p-3 border-2 border-slate-200 rounded-lg focus:outline-none text-sm md:text-base"
+                                />
+                            </div>
+                        </div>
+                        <div className="table-responsive-wrapper">
+                            <table className="table-trailers w-full text-left border-collapse">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th>Placa</th>
+                                        <th>ID / Chasis</th>
+                                        <th>Marca / Modelo</th>
+                                        <th>Línea</th>
+                                        <th>Clase</th>
+                                        <th>Carrocería</th>
+                                        <th>Llantas</th>
+                                        <th>Carga Max</th>
+                                        <th>Propietario</th>
+                                        <th>Estado</th>
+                                        <th className="text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredTrailers.map(t => (
+                                        <tr key={t.id}>
+                                            <td className="font-bold text-corp-blue">{t.placa}</td>
+                                            <td className="font-mono text-xs text-slate-500">{t.identificacion}</td>
+                                            <td>{t.marca} {t.modelo}</td>
+                                            <td>{t.linea}</td>
+                                            <td>{t.clase}</td>
+                                            <td>{t.tipoCarroceria}</td>
+                                            <td>{t.llantas}</td>
+                                            <td>{t.carga}</td>
+                                            <td>{t.propietario}</td>
+                                            <td><Badge status={t.estado} /></td>
+                                            <td className="text-right">
+                                                <div className="action-buttons">
+                                                    <button className="action-btn view" title="Ver detalles">
+                                                        <i className="fa-solid fa-eye"></i>
+                                                    </button>
+                                                    <button className="action-btn edit" title="Editar">
+                                                        <i className="fa-solid fa-pen"></i>
+                                                    </button>
+                                                    <button className="action-btn delete" title="Eliminar" onClick={() => handleDeleteTrailer(t.id, t.placa)}>
+                                                        <i className="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredTrailers.length === 0 && <tr><td colSpan="11" className="text-center p-4 text-slate-400"><i className="fa-solid fa-inbox mr-2"></i>No hay tráileres registrados</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
+
+                    {/* TABLA GTM COMPLETA CON BÚSQUEDA */}
+                    <Card title="Módulos GTM Registrados">
+                        <div className="mb-4">
+                            <div className="relative">
+                                <i className="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm md:text-base"></i>
+                                <input 
+                                    type="text" 
+                                    placeholder="Buscar por serial o marca..." 
+                                    value={searchGtm}
+                                    onChange={e => setSearchGtm(e.target.value)}
+                                    className="search-input w-full pl-10 p-2 md:p-3 border-2 border-slate-200 rounded-lg focus:outline-none text-sm md:text-base"
+                                />
+                            </div>
+                        </div>
+                        <div className="table-responsive-wrapper">
+                            <table className="table-gtm w-full text-left border-collapse">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        {/* GRUPO 1: ID */}
+                                        <th className="bg-blue-50/50 border-r">Serial</th>
+                                        <th className="bg-blue-50/50">Fabricación</th>
+                                        <th className="bg-blue-50/50">Marca</th>
+                                        <th className="bg-blue-50/50">Modelo</th>
+                                        <th className="bg-blue-50/50 border-r">Tipo</th>
+                                        
+                                        {/* GRUPO 2: PESOS Y CAPACIDADES */}
+                                        <th className="bg-green-50/50">Cap. Gas (m3)</th>
+                                        <th className="bg-green-50/50">Cap. Gas (kg)</th>
+                                        <th className="bg-green-50/50">Peso Cil. (kg)</th>
+                                        <th className="bg-green-50/50 border-r">Peso Total (kg)</th>
+
+                                        {/* GRUPO 3: CILINDROS */}
+                                        <th className="bg-yellow-50/50"># Cilindros</th>
+                                        <th className="bg-yellow-50/50">Material</th>
+                                        <th className="bg-yellow-50/50">Cap 1 Cil (Lt)</th>
+                                        <th className="bg-yellow-50/50 border-r">Canastillas (1-5)</th>
+
+                                        {/* GRUPO 4: OPERACIÓN */}
+                                        <th className="bg-slate-100/50">Presión Trabajo</th>
+                                        <th className="bg-slate-100/50">Max Llenado</th>
+                                        <th className="bg-slate-100/50">Hidrostática</th>
+                                        <th className="bg-slate-100/50 border-r">Temp. Trabajo</th>
+
+                                        {/* GRUPO 5: DIMENSIONES */}
+                                        <th className="bg-purple-50/50">Largo (m)</th>
+                                        <th className="bg-purple-50/50">Alto (m)</th>
+                                        <th className="bg-purple-50/50 border-r">Ancho (m)</th>
+
+                                        {/* GRUPO 6: ACCESORIOS */}
+                                        <th>Válvulas Paso</th>
+                                        <th>Manguera</th>
+                                        <th>Manómetro</th>
+                                        <th>Vál. Seguridad</th>
+                                        
+                                        <th className="border-l bg-slate-100">Ubicación</th>
+                                        <th className="bg-slate-100">Estado</th>
+                                        <th className="bg-slate-100">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredGtms.map(g => (
+                                        <tr key={g.id}>
+                                            {/* ID */}
+                                            <td className="font-bold text-corp-green border-r">{g.serial}</td>
+                                            <td>{g.fechaFabricacion}</td>
+                                            <td>{g.marca}</td>
+                                            <td>{g.modelo}</td>
+                                            <td className="border-r">{g.tipo}</td>
+
+                                            {/* PESOS */}
+                                            <td className="font-bold">{g.capacidadGasM3}</td>
+                                            <td>{g.capacidadGasKg}</td>
+                                            <td>{g.pesoCilindros}</td>
+                                            <td className="border-r font-semibold">{g.pesoTotal}</td>
+
+                                            {/* CILINDROS */}
+                                            <td className="font-bold text-center">{g.cantCilindros}</td>
+                                            <td>{g.material}</td>
+                                            <td>{g.capCilindroLt}</td>
+                                            <td className="text-xs font-mono border-r">
+                                                [{g.canastilla1}-{g.canastilla2}-{g.canastilla3}-{g.canastilla4}-{g.canastilla5}]
+                                            </td>
+
+                                            {/* OPERACIÓN */}
+                                            <td>{g.presionTrabajo} BAR</td>
+                                            <td>{g.presionMaxLlenado} BAR</td>
+                                            <td>{g.presionHidrostatica} BAR</td>
+                                            <td className="border-r">{g.tempTrabajo} °C</td>
+
+                                            {/* DIMENSIONES */}
+                                            <td>{g.largo}</td>
+                                            <td>{g.alto}</td>
+                                            <td className="border-r">{g.ancho}</td>
+
+                                            {/* ACCESORIOS */}
+                                            <td>{g.valvulasPaso}</td>
+                                            <td>{g.mangueraLlenado}</td>
+                                            <td>{g.manometro}</td>
+                                            <td>{g.valvulaSeguridad}</td>
+
+                                            <td className="border-l bg-slate-50">
+                                                {g.trailerAsignado ? 
+                                                    <span className="text-xs bg-blue-100 text-corp-blue px-2 py-1 rounded font-bold">
+                                                        <i className="fa-solid fa-link mr-1"></i> {g.trailerAsignado}
+                                                    </span> : <span className="text-slate-400 italic">--</span>}
+                                            </td>
+                                            <td className="bg-slate-50"><Badge status={g.estado} /></td>
+                                            <td className="bg-slate-50">
+                                                <div className="action-buttons">
+                                                    <button className="action-btn delete" title="Eliminar" onClick={() => handleDeleteGtm(g.id, g.serial)}>
+                                                        <i className="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredGtms.length === 0 && <tr><td colSpan="26" className="text-center p-4 text-slate-400"><i className="fa-solid fa-inbox mr-2"></i>No hay módulos GTM registrados</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
+                </div>
+            );
+
+            const renderForms = () => (
+                <div className="grid grid-cols-1 gap-6 md:gap-8">
+                    {/* FORMULARIO TRAILER */}
+                    <Card title="Registrar Nuevo Tráiler">
+                        <form onSubmit={handleAddTrailer} className="space-y-4 md:space-y-6">
+                             {/* Fila 1: Identificación y Estado */}
+                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Placa</label>
+                                    <input required className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-blue focus:ring-0 outline-none transition bg-slate-50" 
+                                        value={newTrailer.placa} onChange={e => setNewTrailer({...newTrailer, placa: e.target.value})} placeholder="Ej: S-89454" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">N° Identificación (Chasis)</label>
+                                    <input required className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-blue focus:ring-0 outline-none transition bg-slate-50" 
+                                        value={newTrailer.identificacion} onChange={e => setNewTrailer({...newTrailer, identificacion: e.target.value})} placeholder="Ej: 98A..." />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Estado</label>
+                                    <select className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-blue focus:ring-0 outline-none transition bg-slate-50" 
+                                        value={newTrailer.estado} onChange={e => setNewTrailer({...newTrailer, estado: e.target.value})}>
+                                        <option>Activo</option>
+                                        <option>Mantenimiento</option>
+                                        <option>Inactivo</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Fila 2: Detalles Generales */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Marca</label>
+                                    <input className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-blue focus:ring-0 outline-none transition bg-slate-50" 
+                                        value={newTrailer.marca} onChange={e => setNewTrailer({...newTrailer, marca: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Modelo</label>
+                                    <input type="number" className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-blue focus:ring-0 outline-none transition bg-slate-50" 
+                                        value={newTrailer.modelo} onChange={e => setNewTrailer({...newTrailer, modelo: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Línea</label>
+                                    <input className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-blue focus:ring-0 outline-none transition bg-slate-50" 
+                                        value={newTrailer.linea} onChange={e => setNewTrailer({...newTrailer, linea: e.target.value})} />
+                                </div>
+                            </div>
+
+                            {/* Fila 3: Clasificación */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Clase</label>
+                                    <select className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-blue focus:ring-0 outline-none transition bg-slate-50" 
+                                        value={newTrailer.clase} onChange={e => setNewTrailer({...newTrailer, clase: e.target.value})}>
+                                        <option>Semiremolque</option>
+                                        <option>Remolque</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Carrocería</label>
+                                    <select className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-blue focus:ring-0 outline-none transition bg-slate-50" 
+                                        value={newTrailer.tipoCarroceria} onChange={e => setNewTrailer({...newTrailer, tipoCarroceria: e.target.value})}>
+                                        <option>Estiba</option>
+                                        <option>Plataforma</option>
+                                        
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Propietario</label>
+                                    <input className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-blue focus:ring-0 outline-none transition bg-slate-50" 
+                                        value={newTrailer.propietario} onChange={e => setNewTrailer({...newTrailer, propietario: e.target.value})} />
+                                </div>
+                            </div>
+
+                            {/* Fila 4: Specs Técnicos */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 bg-slate-50 p-3 md:p-4 rounded border border-slate-200">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">N° de Llantas</label>
+                                    <input type="number" className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-blue focus:ring-0 outline-none transition bg-white" 
+                                        value={newTrailer.llantas} onChange={e => setNewTrailer({...newTrailer, llantas: e.target.value})} placeholder="Ej: 6" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Máxima Carga</label>
+                                    <input className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-blue focus:ring-0 outline-none transition bg-white" 
+                                        value={newTrailer.carga} onChange={e => setNewTrailer({...newTrailer, carga: e.target.value})} placeholder="Ej: 35 Ton" />
+                                </div>
+                            </div>
+
+                            <button type="submit" className="w-full btn-blue py-2 md:py-3 px-4 rounded-lg font-bold shadow-md hover:shadow-lg transition text-sm md:text-base">
+                                <i className="fa-solid fa-save mr-2"></i> Guardar Tráiler
+                            </button>
+                        </form>
+                    </Card>
+
+                    {/* FORMULARIO GTM COMPLETO */}
+                    <Card title="Registrar Nuevo Módulo GTM - Ficha Técnica">
+                        <form onSubmit={handleAddGtm} className="space-y-4">
+                            
+                            {/* SECCIÓN 1: IDENTIFICACIÓN */}
+                            <div className="form-section-title mt-0">1. Identificación y General</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Serial No.</label>
+                                    <input required type="text" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.serial} onChange={e => setNewGtm({...newGtm, serial: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Fecha Fabricación</label>
+                                    <input type="date" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.fechaFabricacion} onChange={e => setNewGtm({...newGtm, fechaFabricacion: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Marca</label>
+                                    <input type="text" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.marca} onChange={e => setNewGtm({...newGtm, marca: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Modelo</label>
+                                    <input type="text" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.modelo} onChange={e => setNewGtm({...newGtm, modelo: e.target.value})} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Tipo</label>
+                                    <input type="text" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.tipo} onChange={e => setNewGtm({...newGtm, tipo: e.target.value})} placeholder="Ej: Vertical/Horizontal" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Vida Útil (Años)</label>
+                                    <input type="number" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.vidaUtil} onChange={e => setNewGtm({...newGtm, vidaUtil: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Contenido</label>
+                                    <input type="text" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.contenido} onChange={e => setNewGtm({...newGtm, contenido: e.target.value})} placeholder="Ej: Gas Natural" />
+                                </div>
+                            </div>
+
+                            {/* SECCIÓN 2: CAPACIDADES Y PESOS */}
+                            <div className="form-section-title">2. Capacidades y Pesos</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50 p-3 rounded">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Peso Cilindros (kg)</label>
+                                    <input type="number" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.pesoCilindros} onChange={e => setNewGtm({...newGtm, pesoCilindros: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Cap. Gas (kg)</label>
+                                    <input type="number" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.capacidadGasKg} onChange={e => setNewGtm({...newGtm, capacidadGasKg: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Peso Total (kg)</label>
+                                    <input type="number" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.pesoTotal} onChange={e => setNewGtm({...newGtm, pesoTotal: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Cap. Gas (m3)</label>
+                                    <input type="number" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.capacidadGasM3} onChange={e => setNewGtm({...newGtm, capacidadGasM3: e.target.value})} />
+                                </div>
+                            </div>
+
+                            {/* SECCIÓN 3: PARÁMETROS DE OPERACIÓN */}
+                            <div className="form-section-title">3. Presiones y Temperatura</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Presión Trabajo (BAR)</label>
+                                    <input type="number" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.presionTrabajo} onChange={e => setNewGtm({...newGtm, presionTrabajo: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Max Llenado (BAR)</label>
+                                    <input type="number" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.presionMaxLlenado} onChange={e => setNewGtm({...newGtm, presionMaxLlenado: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Hidrostática (BAR)</label>
+                                    <input type="number" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.presionHidrostatica} onChange={e => setNewGtm({...newGtm, presionHidrostatica: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Temp. Trabajo (°C)</label>
+                                    <input type="number" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.tempTrabajo} onChange={e => setNewGtm({...newGtm, tempTrabajo: e.target.value})} />
+                                </div>
+                            </div>
+
+                            {/* SECCIÓN 4: ESPECIFICACIONES DE CILINDROS */}
+                            <div className="form-section-title">4. Cilindros y Material</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Material</label>
+                                    <input type="text" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.material} onChange={e => setNewGtm({...newGtm, material: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Cant. Total Cilindros</label>
+                                    <input type="number" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.cantCilindros} onChange={e => setNewGtm({...newGtm, cantCilindros: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Cap. 1 Cilindro (m3)</label>
+                                    <input type="number" step="0.01" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.capCilindroM3} onChange={e => setNewGtm({...newGtm, capCilindroM3: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Cap. 1 Cilindro (Lt)</label>
+                                    <input type="number" step="0.01" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.capCilindroLt} onChange={e => setNewGtm({...newGtm, capCilindroLt: e.target.value})} />
+                                </div>
+                            </div>
+
+                            {/* SECCIÓN 5: DISTRIBUCIÓN CANASTILLAS */}
+                            <div className="form-section-title">5. Distribución Canastillas</div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 bg-slate-50 p-3 rounded">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 text-center mb-1">Canastilla 1</label>
+                                    <input type="number" className="w-full p-2 text-center border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.canastilla1} onChange={e => setNewGtm({...newGtm, canastilla1: e.target.value})} placeholder="#" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 text-center mb-1">Canastilla 2</label>
+                                    <input type="number" className="w-full p-2 text-center border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.canastilla2} onChange={e => setNewGtm({...newGtm, canastilla2: e.target.value})} placeholder="#" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 text-center mb-1">Canastilla 3</label>
+                                    <input type="number" className="w-full p-2 text-center border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.canastilla3} onChange={e => setNewGtm({...newGtm, canastilla3: e.target.value})} placeholder="#" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 text-center mb-1">Canastilla 4</label>
+                                    <input type="number" className="w-full p-2 text-center border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.canastilla4} onChange={e => setNewGtm({...newGtm, canastilla4: e.target.value})} placeholder="#" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 text-center mb-1">Canastilla 5</label>
+                                    <input type="number" className="w-full p-2 text-center border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.canastilla5} onChange={e => setNewGtm({...newGtm, canastilla5: e.target.value})} placeholder="#" />
+                                </div>
+                            </div>
+
+                            {/* SECCIÓN 6: ACCESORIOS Y DIMENSIONES */}
+                            <div className="form-section-title">6. Válvulas, Accesorios y Dimensiones</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Cant. Válvulas de Paso</label>
+                                    <input type="number" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.valvulasPaso} onChange={e => setNewGtm({...newGtm, valvulasPaso: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Manguera de Llenado</label>
+                                    <input type="text" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.mangueraLlenado} onChange={e => setNewGtm({...newGtm, mangueraLlenado: e.target.value})} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Marca/Spec Válvula Seguridad</label>
+                                    <input type="text" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.valvulaSeguridad} onChange={e => setNewGtm({...newGtm, valvulaSeguridad: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Marca/Spec Ind. Temperatura</label>
+                                    <input type="text" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.indicadorTemp} onChange={e => setNewGtm({...newGtm, indicadorTemp: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Marca/Spec Manómetro</label>
+                                    <input type="text" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.manometro} onChange={e => setNewGtm({...newGtm, manometro: e.target.value})} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Largo (m)</label>
+                                    <input type="number" step="0.01" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.largo} onChange={e => setNewGtm({...newGtm, largo: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Alto (m)</label>
+                                    <input type="number" step="0.01" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.alto} onChange={e => setNewGtm({...newGtm, alto: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Ancho (m)</label>
+                                    <input type="number" step="0.01" className="w-full p-2 border border-slate-300 rounded focus:border-corp-green focus:ring-0 outline-none" 
+                                        value={newGtm.ancho} onChange={e => setNewGtm({...newGtm, ancho: e.target.value})} />
+                                </div>
+                            </div>
+
+                            <div className="mt-6 border-t pt-4">
+                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Asignar a Tráiler (Vinculación)</label>
+                                <select className="w-full p-2 border-2 border-slate-200 rounded focus:border-corp-green focus:ring-0 outline-none transition bg-slate-50"
+                                    value={newGtm.trailerAsignado} onChange={e => setNewGtm({...newGtm, trailerAsignado: e.target.value})}>
+                                    <option value="">-- Sin asignar --</option>
+                                    {trailers.map(t => (
+                                        <option key={t.id} value={t.placa}>{t.placa} ({t.marca})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <button type="submit" className="w-full btn-green py-2 md:py-3 px-4 rounded-lg font-bold shadow-md hover:shadow-lg transition flex justify-center items-center mt-6 text-sm md:text-base">
+                                <i className="fa-solid fa-save mr-2"></i> Guardar Ficha Técnica GTM
+                            </button>
+                        </form>
+                    </Card>
+                </div>
+            );
+
+            // RENDER PRINCIPAL
+            return (
+                <div className="flex min-h-screen bg-slate-100">
+                    <ToastContainer toasts={toasts} removeToast={removeToast} />
+                    
+                    {/* Overlay para cerrar sidebar en móvil */}
+                    {sidebarOpen && (
+                        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)}></div>
+                    )}
+                    
+                    {/* SIDEBAR */}
+                    <div className={`fixed md:static w-full md:w-64 h-full md:h-auto bg-white border-r border-slate-200 flex flex-col shadow-lg z-50 transition-transform duration-300 ${ 
+                        sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+                    }`}>
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                            {/* LOGO CORPORATIVO */}
+                            <div className="text-center flex-1">
+                                <div className="text-3xl font-black text-corp-green tracking-tighter mb-1">
+                                    <span className="text-corp-blue">MC</span>2
+                                </div>
+                                <p className="text-xs font-bold text-slate-400 tracking-widest">FLEET MANAGER</p>
+                            </div>
+                            {/* Botón cerrar en móvil */}
+                            <button onClick={() => setSidebarOpen(false)} className="md:hidden text-slate-400 hover:text-slate-600">
+                                <i className="fa-solid fa-xmark text-xl"></i>
+                            </button>
+                        </div>
+                        <nav className="flex-1 p-4 space-y-2 mt-4">
+                            <div onClick={() => {setCurrentView('dashboard'); setSidebarOpen(false);}} 
+                                 className={`sidebar-link p-3 rounded-lg flex items-center text-slate-600 font-medium ${currentView === 'dashboard' ? 'active' : ''}`}>
+                                <i className="fa-solid fa-chart-pie w-8 text-center text-lg"></i> 
+                                Gestión
+                            </div>
+                            <div onClick={() => {setCurrentView('registro'); setSidebarOpen(false);}} 
+                                 className={`sidebar-link p-3 rounded-lg flex items-center text-slate-600 font-medium ${currentView === 'registro' ? 'active' : ''}`}>
+                                <i className="fa-solid fa-pen-to-square w-8 text-center text-lg"></i> Registro
+                            </div>
+                        </nav>
+                        <div className="p-4 m-4 rounded-xl bg-gradient-to-br from-corp-blue to-corp-green shadow-md">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-corp-blue font-bold shadow">CA</div>
+                                <div>
+                                    <p className="text-sm font-bold text-white">Cesar Asprilla</p>
+                                    <p className="text-xs text-blue-100">Supervisor</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* CONTENIDO PRINCIPAL */}
+                    <main className="flex-1 w-full md:flex-1 main-content overflow-x-hidden">
+                        <div className="max-w-full md:max-w-[95%] mx-auto">
+                            <header className="flex justify-between items-center mb-8 bg-gradient-to-r from-white to-slate-50 p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 mx-4 md:mx-0">
+                                <div>
+                                    <h2 className="text-2xl md:text-3xl font-bold text-slate-800">
+                                        {currentView === 'dashboard' ? '📊 Control de Flota' : '📝 Ingreso de Información'}
+                                    </h2>
+                                    <p className="text-slate-400 text-xs md:text-sm mt-1">Gestión Operativa de Tráileres y Módulos GTM</p>
+                                </div>
+                                <div className="flex gap-2 md:gap-3">
+                                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden btn-blue px-3 py-2 rounded-lg font-bold text-sm">
+                                        <i className="fa-solid fa-bars"></i>
+                                    </button>
+                                    <button className="hidden md:flex bg-white border-2 border-slate-200 text-slate-600 px-4 py-2 rounded-lg hover:border-corp-blue hover:text-corp-blue hover:shadow-md font-bold transition">
+                                        <i className="fa-solid fa-file-export mr-2"></i> Reportes
+                                    </button>
+                                </div>
+                            </header>
+
+                            {/* CONTENIDO DINÁMICO */}
+                            <div className="px-4 md:px-0">
+                                {currentView === 'dashboard' ? renderDashboard() : renderForms()}
+                            </div>
+
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
